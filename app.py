@@ -10,19 +10,19 @@ from sklearn.metrics import silhouette_score
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Supermarket Sales Dashboard", layout="wide")
 
-# --- DASHBOARD ---
-st.title("Supermarket Sales Analytics (KDD Implementation)")
+# --- DASHBOARD HEADER ---
+st.title("📊 Supermarket Sales Analytics (KDD Implementation)")
 st.caption("Dibuat oleh: Chairul Iman (23.230.0091)")
 st.markdown("---")
 
 # --- 1. LOAD DATA ---
 @st.cache_data 
 def load_data():
-    
     try:   
+        # Ganti dengan path file Anda jika perlu
         df = pd.read_csv('Supermarket Sales Cleaned.csv') 
     except:
-        # Data Dummy Generator
+        # Data Dummy Generator (Fallback jika file tidak ada)
         np.random.seed(42)
         n_rows = 1000
         data = {
@@ -42,7 +42,7 @@ def load_data():
         df = pd.DataFrame(data)
         df['Total'] = df['Unit price'] * df['Quantity'] * 1.05 
     
-   
+    # Preprocessing Wajib
     df['Date'] = pd.to_datetime(df['Date'])
     df['Day_Name'] = df['Date'].dt.day_name()
     df['Hour'] = pd.to_datetime(df['Time'], format='%H:%M').dt.hour
@@ -95,8 +95,10 @@ else:
     st.stop()
 
 # --- TABS VISUALISASI ---
-tab1, tab2, tab3 = st.tabs(["Analisis Bisnis", "Hasil Clustering", "Data Mentah"])
+# KITA NAMBAH SATU TAB BARU: "Deep Dive Insights"
+tab1, tab2, tab3, tab4 = st.tabs(["📈 Analisis Bisnis", "🔍 Deep Dive Insights", "🧩 Hasil Clustering", "📋 Data Mentah"])
 
+# === TAB 1: ANALISIS BISNIS DASAR ===
 with tab1:
     st.header("Analisis Performa Bisnis")
     
@@ -107,14 +109,18 @@ with tab1:
         st.subheader("Tren Jam Sibuk")
         hourly_counts = df_filtered.groupby('Hour').size().reset_index(name='Counts')
         fig_line = plt.figure(figsize=(10, 5))
-        sns.lineplot(data=hourly_counts, x='Hour', y='Counts', marker='o', color='red')
+        sns.lineplot(data=hourly_counts, x='Hour', y='Counts', marker='o', color='red', linewidth=2.5)
         plt.grid(True, alpha=0.3)
+        plt.xlabel("Jam Operasional")
+        plt.ylabel("Jumlah Transaksi")
         st.pyplot(fig_line)
         
     with col_b:
         st.subheader("Pendapatan per Lini Produk")
+        product_sales = df_filtered.groupby('Product line')['Total'].sum().sort_values(ascending=False).reset_index()
         fig_bar = plt.figure(figsize=(10, 5))
-        sns.barplot(data=df_filtered, y='Product line', x='Total', estimator=sum, palette='magma')
+        sns.barplot(data=product_sales, y='Product line', x='Total', palette='magma')
+        plt.xlabel("Total Pendapatan ($)")
         st.pyplot(fig_bar)
     
     # Row 2
@@ -123,7 +129,7 @@ with tab1:
     with col_c:
         st.subheader("Metode Pembayaran")
         fig_pie, ax = plt.subplots()
-        df_filtered['Payment'].value_counts().plot.pie(autopct='%1.1f%%', ax=ax, startangle=90)
+        df_filtered['Payment'].value_counts().plot.pie(autopct='%1.1f%%', ax=ax, startangle=90, colors=sns.color_palette('pastel'))
         ax.set_ylabel('')
         st.pyplot(fig_pie)
 
@@ -133,32 +139,101 @@ with tab1:
         sns.boxplot(data=df_filtered, x='Branch', y='Rating', palette='Set2')
         st.pyplot(fig_box)
 
+# === TAB 2: DEEP DIVE INSIGHTS (BARU) ===
 with tab2:
+    st.header("Analisis & Insight Mendalam")
+
+    # 1. Automated Text Insight (Kesimpulan Otomatis)
+    st.subheader("💡 Key Insights (Dihasilkan Otomatis)")
+    
+    # Hitung data untuk insight
+    top_day = df_filtered['Day_Name'].mode()[0]
+    top_product = df_filtered.groupby('Product line')['Total'].sum().idxmax()
+    avg_spend = df_filtered['Total'].mean()
+    
+    st.success(f"""
+    Berdasarkan data yang difilter:
+    - **Hari Teramai:** Pengunjung paling sering datang pada hari **{top_day}**.
+    - **Produk Juara:** Kategori **{top_product}** memberikan pendapatan terbesar.
+    - **Rata-rata Belanja:** Setiap pelanggan menghabiskan rata-rata **${avg_spend:.2f}** per transaksi.
+    """)
+
+    st.markdown("---")
+
+    # 2. Grafik Hubungan Gender & Produk
+    col_deep1, col_deep2 = st.columns(2)
+    
+    with col_deep1:
+        st.subheader("Siapa Membeli Apa? (Gender vs Produk)")
+        # Crosstab heatmap
+        cross_tab = pd.crosstab(df_filtered['Product line'], df_filtered['Gender'])
+        fig_heat = plt.figure(figsize=(10, 6))
+        sns.heatmap(cross_tab, annot=True, fmt='d', cmap='Blues', cbar=False)
+        plt.ylabel("Kategori Produk")
+        st.pyplot(fig_heat)
+        st.caption("Grafik ini menunjukkan kategori produk mana yang dominan dibeli oleh Pria atau Wanita.")
+
+    with col_deep2:
+        st.subheader("Matriks Korelasi (Hubungan Variabel)")
+        # Korelasi antar angka
+        numeric_df = df_filtered[['Total', 'Quantity', 'Rating', 'Unit price']]
+        corr = numeric_df.corr()
+        fig_corr = plt.figure(figsize=(10, 6))
+        sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+        st.pyplot(fig_corr)
+        st.caption("Warna Merah = Hubungan Kuat. Contoh: Jika Total & Quantity merah, artinya makin banyak barang, harga makin mahal.")
+
+    st.markdown("---")
+    
+    # 3. Time Series Analysis (Omzet Harian)
+    st.subheader("📈 Tren Pendapatan Harian (Selama 3 Bulan)")
+    daily_sales = df_filtered.groupby('Date')['Total'].sum().reset_index()
+    
+    fig_ts = plt.figure(figsize=(15, 5))
+    sns.lineplot(data=daily_sales, x='Date', y='Total', color='green', linewidth=2)
+    plt.title("Fluktuasi Pendapatan Harian")
+    plt.xlabel("Tanggal")
+    plt.ylabel("Total Pendapatan ($)")
+    plt.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig_ts)
+
+# === TAB 3: HASIL CLUSTERING ===
+with tab3:
     st.header(f"Segmentasi Pelanggan (K-Means = {k_clusters})")
-    st.write(f"**Silhouette Score:** {score:.4f} (Kualitas Cluster)")
+    st.write(f"**Silhouette Score:** {score:.4f} (Semakin mendekati 1, cluster semakin rapi)")
     
     col_cluster1, col_cluster2 = st.columns([2, 1])
     
     with col_cluster1:
         # Scatter Plot Cluster
         fig_cluster = plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=df_filtered, x='Total', y='Rating', hue='Cluster', palette='viridis', s=80)
+        sns.scatterplot(data=df_filtered, x='Total', y='Rating', hue='Cluster', palette='viridis', s=100, alpha=0.8)
         plt.title("Peta Persebaran Cluster (Total Belanja vs Rating)")
+        plt.xlabel("Total Belanja ($)")
+        plt.ylabel("Rating Customer")
         st.pyplot(fig_cluster)
         
     with col_cluster2:
         # Statistik Cluster
-        st.write("### Profil Rata-rata Cluster")
+        st.write("### Profil Karakteristik Cluster")
         cluster_stats = df_filtered.groupby('Cluster')[['Total', 'Rating', 'Quantity']].mean()
-        st.dataframe(cluster_stats)
+        st.dataframe(cluster_stats.style.highlight_max(axis=0, color='lightgreen'))
         
         st.info("""
-        **Tips Membaca:**
-        - Lihat nilai rata-rata 'Total' tertinggi -> Pelanggan Premium.
-        - Lihat nilai 'Rating' terendah -> Pelanggan Tidak Puas.
+        **Panduan Analisis:**
+        - **High Spenders:** Cluster dengan rata-rata 'Total' paling tinggi.
+        - **At Risk:** Cluster dengan 'Rating' rendah.
+        - **Loyal:** Cluster dengan 'Total' tinggi dan 'Rating' tinggi.
         """)
+        
+    # Boxplot Cluster (Tambahan Insight Clustering)
+    st.subheader("Distribusi Rating per Cluster")
+    fig_cluster_box = plt.figure(figsize=(12, 4))
+    sns.boxplot(data=df_filtered, x='Cluster', y='Rating', palette='viridis')
+    st.pyplot(fig_cluster_box)
 
-with tab3:
+# === TAB 4: DATA MENTAH ===
+with tab4:
     st.header("Data Transaksi")
     st.dataframe(df_filtered)
     
