@@ -10,8 +10,8 @@ from sklearn.metrics import silhouette_score
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Supermarket Sales Dashboard", layout="wide")
 
-# --- JUDUL DASHBOARD ---
-st.title("📊 Supermarket Sales Analytics (KDD Implementation)")
+# --- DASHBOARD ---
+st.title("Supermarket Sales Analytics (KDD Implementation)")
 st.caption("Dibuat oleh: Chairul Iman (23.230.0091)")
 st.markdown("---")
 
@@ -95,7 +95,7 @@ else:
     st.stop()
 
 # --- TABS VISUALISASI ---
-tab1, tab2, tab3 = st.tabs(["📈 Analisis Bisnis", "🧩 Hasil Clustering", "📋 Data Mentah"])
+tab1, tab2, tab3 = st.tabs(["Analisis Bisnis", "Hasil Clustering", "Data Mentah"])
 
 with tab1:
     st.header("Analisis Performa Bisnis")
