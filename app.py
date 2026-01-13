@@ -10,8 +10,8 @@ from sklearn.metrics import silhouette_score
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Supermarket Sales Dashboard", layout="wide")
 
-# --- DASHBOARD HEADER ---
-st.title("📊 Supermarket Sales Analytics (KDD Implementation)")
+# --- DASHBOARD ---
+st.title("Supermarket Sales Analytics (KDD Implementation)")
 st.caption("Dibuat oleh: Chairul Iman (23.230.0091)")
 st.markdown("---")
 
@@ -19,10 +19,9 @@ st.markdown("---")
 @st.cache_data 
 def load_data():
     try:   
-        # Ganti dengan path file Anda jika perlu
         df = pd.read_csv('Supermarket Sales Cleaned.csv') 
     except:
-        # Data Dummy Generator (Fallback jika file tidak ada)
+        # Data Dummy
         np.random.seed(42)
         n_rows = 1000
         data = {
@@ -42,7 +41,7 @@ def load_data():
         df = pd.DataFrame(data)
         df['Total'] = df['Unit price'] * df['Quantity'] * 1.05 
     
-    # Preprocessing Wajib
+
     df['Date'] = pd.to_datetime(df['Date'])
     df['Day_Name'] = df['Date'].dt.day_name()
     df['Hour'] = pd.to_datetime(df['Time'], format='%H:%M').dt.hour
@@ -65,7 +64,7 @@ selected_gender = st.sidebar.multiselect(
     default=df["Gender"].unique()
 )
 
-# Terapkan Filter
+
 df_filtered = df.query("Branch == @selected_branch & Gender == @selected_gender")
 
 # --- KPI METRICS ---
@@ -95,8 +94,8 @@ else:
     st.stop()
 
 # --- TABS VISUALISASI ---
-# MENAMBAHKAN TAB 5: STATISTIK LANJUTAN
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Analisis Bisnis", "🔍 Deep Dive Insights", "📊 Statistik Lanjutan", "🧩 Hasil Clustering", "📋 Data Mentah"])
+# MTAB 5: STATISTIK LANJUTAN
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analisis Bisnis", "Deep Dive Insights", "Statistik Lanjutan", "Hasil Clustering", "Data Mentah"])
 
 # === TAB 1: ANALISIS BISNIS DASAR ===
 with tab1:
@@ -144,7 +143,7 @@ with tab2:
     st.header("Analisis & Insight Mendalam")
 
     # 1. Automated Text Insight
-    st.subheader("💡 Key Insights (Dihasilkan Otomatis)")
+    st.subheader("Key Insights (Dihasilkan Otomatis)")
     
     top_day = df_filtered['Day_Name'].mode()[0]
     top_product = df_filtered.groupby('Product line')['Total'].sum().idxmax()
@@ -181,7 +180,7 @@ with tab2:
     st.markdown("---")
     
     # 3. Time Series
-    st.subheader("📈 Tren Pendapatan Harian (Selama 3 Bulan)")
+    st.subheader("Tren Pendapatan Harian (Selama 3 Bulan)")
     daily_sales = df_filtered.groupby('Date')['Total'].sum().reset_index()
     fig_ts = plt.figure(figsize=(15, 5))
     sns.lineplot(data=daily_sales, x='Date', y='Total', color='green', linewidth=2)
@@ -191,7 +190,7 @@ with tab2:
     plt.grid(True, linestyle='--', alpha=0.5)
     st.pyplot(fig_ts)
 
-# === TAB 3: STATISTIK LANJUTAN (NEW!) ===
+# === TAB 3: STATISTIK LANJUTAN ==
 with tab3:
     st.header("Statistik & Distribusi Data")
     
