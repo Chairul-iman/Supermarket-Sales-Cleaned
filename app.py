@@ -95,8 +95,8 @@ else:
     st.stop()
 
 # --- TABS VISUALISASI ---
-# KITA NAMBAH SATU TAB BARU: "Deep Dive Insights"
-tab1, tab2, tab3, tab4 = st.tabs(["📈 Analisis Bisnis", "🔍 Deep Dive Insights", "🧩 Hasil Clustering", "📋 Data Mentah"])
+# MENAMBAHKAN TAB 5: STATISTIK LANJUTAN
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Analisis Bisnis", "🔍 Deep Dive Insights", "📊 Statistik Lanjutan", "🧩 Hasil Clustering", "📋 Data Mentah"])
 
 # === TAB 1: ANALISIS BISNIS DASAR ===
 with tab1:
@@ -139,14 +139,13 @@ with tab1:
         sns.boxplot(data=df_filtered, x='Branch', y='Rating', palette='Set2')
         st.pyplot(fig_box)
 
-# === TAB 2: DEEP DIVE INSIGHTS (BARU) ===
+# === TAB 2: DEEP DIVE INSIGHTS ===
 with tab2:
     st.header("Analisis & Insight Mendalam")
 
-    # 1. Automated Text Insight (Kesimpulan Otomatis)
+    # 1. Automated Text Insight
     st.subheader("💡 Key Insights (Dihasilkan Otomatis)")
     
-    # Hitung data untuk insight
     top_day = df_filtered['Day_Name'].mode()[0]
     top_product = df_filtered.groupby('Product line')['Total'].sum().idxmax()
     avg_spend = df_filtered['Total'].mean()
@@ -160,35 +159,30 @@ with tab2:
 
     st.markdown("---")
 
-    # 2. Grafik Hubungan Gender & Produk
+    # 2. Grafik Hubungan
     col_deep1, col_deep2 = st.columns(2)
     
     with col_deep1:
         st.subheader("Siapa Membeli Apa? (Gender vs Produk)")
-        # Crosstab heatmap
         cross_tab = pd.crosstab(df_filtered['Product line'], df_filtered['Gender'])
         fig_heat = plt.figure(figsize=(10, 6))
         sns.heatmap(cross_tab, annot=True, fmt='d', cmap='Blues', cbar=False)
         plt.ylabel("Kategori Produk")
         st.pyplot(fig_heat)
-        st.caption("Grafik ini menunjukkan kategori produk mana yang dominan dibeli oleh Pria atau Wanita.")
 
     with col_deep2:
         st.subheader("Matriks Korelasi (Hubungan Variabel)")
-        # Korelasi antar angka
         numeric_df = df_filtered[['Total', 'Quantity', 'Rating', 'Unit price']]
         corr = numeric_df.corr()
         fig_corr = plt.figure(figsize=(10, 6))
         sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
         st.pyplot(fig_corr)
-        st.caption("Warna Merah = Hubungan Kuat. Contoh: Jika Total & Quantity merah, artinya makin banyak barang, harga makin mahal.")
 
     st.markdown("---")
     
-    # 3. Time Series Analysis (Omzet Harian)
+    # 3. Time Series
     st.subheader("📈 Tren Pendapatan Harian (Selama 3 Bulan)")
     daily_sales = df_filtered.groupby('Date')['Total'].sum().reset_index()
-    
     fig_ts = plt.figure(figsize=(15, 5))
     sns.lineplot(data=daily_sales, x='Date', y='Total', color='green', linewidth=2)
     plt.title("Fluktuasi Pendapatan Harian")
@@ -197,8 +191,48 @@ with tab2:
     plt.grid(True, linestyle='--', alpha=0.5)
     st.pyplot(fig_ts)
 
-# === TAB 3: HASIL CLUSTERING ===
+# === TAB 3: STATISTIK LANJUTAN (NEW!) ===
 with tab3:
+    st.header("Statistik & Distribusi Data")
+    
+    col_stat1, col_stat2 = st.columns(2)
+    
+    with col_stat1:
+        st.subheader("1. Distribusi Total Belanja")
+        st.caption("Apakah orang lebih sering belanja kecil atau besar?")
+        fig_hist = plt.figure(figsize=(10, 5))
+        sns.histplot(data=df_filtered, x='Total', kde=True, color='purple', bins=20)
+        plt.xlabel("Total Belanja ($)")
+        plt.ylabel("Frekuensi")
+        st.pyplot(fig_hist)
+        
+    with col_stat2:
+        st.subheader("2. Member vs Normal")
+        st.caption("Siapa yang belanja lebih banyak per kunjungan?")
+        fig_box_cust = plt.figure(figsize=(10, 5))
+        sns.boxplot(data=df_filtered, x='Customer type', y='Total', palette='cool')
+        st.pyplot(fig_box_cust)
+        
+    st.markdown("---")
+    
+    col_stat3, col_stat4 = st.columns(2)
+    
+    with col_stat3:
+        st.subheader("3. Performa per Kota (City)")
+        city_sales = df_filtered.groupby('City')['Total'].sum().reset_index()
+        fig_city = plt.figure(figsize=(10, 5))
+        sns.barplot(data=city_sales, x='City', y='Total', palette='viridis')
+        st.pyplot(fig_city)
+        
+    with col_stat4:
+        st.subheader("4. Metode Bayar per Cabang")
+        st.caption("Apakah cabang tertentu lebih suka E-Wallet?")
+        fig_stack = plt.figure(figsize=(10, 5))
+        sns.countplot(data=df_filtered, x='Branch', hue='Payment', palette='Set2')
+        st.pyplot(fig_stack)
+
+# === TAB 4: HASIL CLUSTERING ===
+with tab4:
     st.header(f"Segmentasi Pelanggan (K-Means = {k_clusters})")
     st.write(f"**Silhouette Score:** {score:.4f} (Semakin mendekati 1, cluster semakin rapi)")
     
@@ -226,14 +260,14 @@ with tab3:
         - **Loyal:** Cluster dengan 'Total' tinggi dan 'Rating' tinggi.
         """)
         
-    # Boxplot Cluster (Tambahan Insight Clustering)
+    # Boxplot Cluster
     st.subheader("Distribusi Rating per Cluster")
     fig_cluster_box = plt.figure(figsize=(12, 4))
     sns.boxplot(data=df_filtered, x='Cluster', y='Rating', palette='viridis')
     st.pyplot(fig_cluster_box)
 
-# === TAB 4: DATA MENTAH ===
-with tab4:
+# === TAB 5: DATA MENTAH ===
+with tab5:
     st.header("Data Transaksi")
     st.dataframe(df_filtered)
     
